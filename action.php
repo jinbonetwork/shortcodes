@@ -1,6 +1,6 @@
 <?php
 if(!defined('DOKU_INC')) define('DOKU_INC',realpath(dirname(__FILE__).'/../../').'/');
-require_once dirname(__FILE__).'/shortcodes.php';
+require_once dirname(__FILE__).'/class.php';
 
 //-----------------------------------------------------------------------------------
 //	Plugin	
