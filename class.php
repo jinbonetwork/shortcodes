@@ -45,6 +45,7 @@ class KabinetShortcodes {
 		}
 
 		$shortcode = $matches[2];
+		self::$shortcodes[] = $shortcode;
 		$attributes = self::getAttributes($matches[3]);
 		$class = self::$classPrefix.$shortcode;
 		$object = new $class($attributes);
@@ -140,7 +141,7 @@ class KabinetShortcodes {
 	public static function recoverAttributeString($string = '') {
 		$pattern = array(
 			'&#039;' => '\'',
-			'&quot;' => '\"',
+			'&quot;' => '"',
 		);
 		$string = str_replace(array_keys($pattern),array_values($pattern),$string);
 		$string = preg_replace('/[\x{00a0}\x{200b}]+/u',' ',$string);

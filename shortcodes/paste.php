@@ -1,70 +1,94 @@
 <?php
 class KabinetShortcode_paste extends KabinetShortcode {
+
+	public $url;
+	public $page;
+	public $selector;
+
+	protected $dataDir;
+	protected $pageDir;
+	protected $cacheDir;
+
+	protected $mode;
+	protected $item;
+	protected $content;
+	protected $mtime;
+	protected $pageExtension;
+	protected $cacheExtension;
+	protected $cacheFile;
+
 	function __construct($attributes=array()) {
-		global $INFO,$conf;
+		global $conf;
+		$this->dataDir = realpath(DOKU_PATH.'/'.$conf['savedir']);
+		$this->pageDir = $this->dataDir.'/pages';
+		$this->cacheDir = $this->dataDir.'/cache/paste';
+		$this->pageExtension = '.txt';
+		$this->cacheExtension = '.txt';
+
+		// acceptable options
 		$defaults = array(
-			'dir' => realpath(DOKU_PATH.$conf['savedir']).'/cache/paste', // read/write permission required.
-			'mode' => '', // automatic
 			'url' => '',
 			'page' => '',
 			'selector' => '',
 		);
 
 		if($attributes['url']) {
-			$attributes['url'] = urlencode($attributes['url']);
-			$attributes['mode'] = 'url';
+			$this->mode = 'url';
 		} elseif($attributes['page']) {
-			$attributes['mode'] = 'page';
+			$this->mode = 'page';
 		} else {
-			$attributes['mode'] = false;
+			$this->mode = false;
 		}
 
 		$this->filterAttributes($attributes,$defaults);
+		foreach($this->attributes as $key => $value) {
+			$this->$key = $value;
+		}
+
 		$this->output = $this->execute();
 	}
 
 	function execute() {
 		$result = false;
-		$content = '';
-		$filepath = '';
-		$cachefile = '';
-		extract($this->attributes);
 
-		switch($mode) {
+		switch($this->mode) {
 			case 'url':
-				$id = $url;
-				$content = $this->getContentByUrl($id);
-				$cachefile = $this->getCacheNameByUrl($id);
+				$this->item = $this->url;
+				$this->content = $this->getContentByUrl($this->url);
+				$this->cacheFile = $this->getcacheFileByUrl($this->url);
 				break;
 			case 'page':
-				$id = $page;
-				$content = $this->getContentByPage($id);
-				$cachefile = $this->getCacheNameByPage($id);
+				$this->item = $this->page;
+				$this->content = $this->getContentByPage($this->page);
+				$this->cacheFile = $this->getcacheFileByPage($this->page);
 				break;
 			default:
 				return $result;
 				break;
 		}
-		
-		print_r($this->attributes);
-		if($content) {
-			$result = sprintf('<dl><dt>%s</dt><dd>%s</dd><dd>%s</dd></dl>',$id.'('.$mode.':'.$cachefile.')',$selector,htmlentities($content));
-		}
+	
+		$result = sprintf(
+			'<dl><dt>%s</dt><dd>%s</dd><dd>%s</dd></dl>',
+			urldecode($this->item).'('.$this->mode.':'.$this->cacheFile.')',
+			$this->selector,
+			$this->content
+		);
 
 		return $result;
 	}
 
 	function getContentByUrl($url) {
-		$content = file_get_contents($url);
+		$content = @file_get_contents($url);
 		return $content;
 	}
 
-	function getCacheNameByUrl($url) {
-		$name = false;
+	function getcacheFileByUrl($url) {
+		$file = false;
 
 		list($protocol,$url) = explode('://',$url);
 		$tree = explode('/',$url);
-		$name = implode('_',$tree).$this->cacheExtension;
+		$file = implode('_',$tree).$this->cacheExtension;
+		$file = $this->cacheDir.'/'.$file;
 
 		return $name;
 	}
@@ -72,24 +96,26 @@ class KabinetShortcode_paste extends KabinetShortcode {
 	function getContentByPage($page) {
 		$content = false;
 
-		$filepath = wikiFN($page);
-		if(!file_exists($filepath)) {
+		$file = wikiFN($page);
+		if(!file_exists($file)) {
 			return $content;
 		}
-		$content = p_wiki_xhtml($filepath);
+		$content = p_wiki_xhtml($file);
 
 		return $content;
 	}
 
-	function getCacheNameByPage($page) {
-		$name = false;
-
-		$filepath = wikiFN($page);
-		if(file_exists($filepath)) {
-			$name = $this->getCacheNameByUrl($filename);
+	function getcacheFileByPage($page) {
+		$file = wikiFN($page);
+		if(file_exists($file)) {
+			$pattern = array(
+				$this->pageDir => $this->cacheDir,
+				$this->pageExtension => $this->cacheExtension,
+			);
+			$file = str_replace(array_keys($pattern),array_values($pattern),$file);
 		}
 
-		return $name;
+		return $file;
 	}
 
 }
