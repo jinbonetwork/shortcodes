@@ -98,37 +98,69 @@ class KabinetShortcodes {
 	}
 
 	public static function getAttributesPattern() {
-		$pattern = '/(\w+)\s*=\s*"([^"]*)"(?:\s|$)|(\w+)\s*=\s*\'([^\']*)\'(?:\s|$)|(\w+)\s*=\s*([^\s\'"]+)(?:\s|$)|"([^"]*)"(?:\s|$)|(\S+)(?:\s|$)/';
+		$pattern = '/(\w+)\s*=\s*\"([^\"]*)\"(?:\s|$)|(\w+)\s*=\s*\'([^\']*)\'(?:\s|$)|(\w+)\s*=\s*([^\s\'\"]+)(?:\s|$)|\"([^\"]*)\"(?:\s|$)|(\S+)(?:\s|$)/';
 
 		return $pattern;
 	}
 
-	public static function getAttributes($string) {
+	public static function getAttributes($string='') {
 		$attributes = array();
 
-		$string = preg_replace('/[\x{00a0}\x{200b}]+/u',' ',$string);
-
+		$string = self::recoverAttributeString($string);
 		if(preg_match_all(self::$attributesPattern,$string,$matches,PREG_SET_ORDER)) {
 			foreach($matches as $match) {
 				if(!empty($match[1])) {
-					$atts[strtolower($match[1])] = stripcslashes($match[2]);
+					$key = $match[1];
+					$value = $match[2];
 				} elseif(!empty($match[3])) {
-					$attributes[strtolower($match[3])] = stripcslashes($match[4]);
+					$key = $match[3];
+					$value = $match[4];
 				} elseif(!empty($match[5])) {
-					$attributes[strtolower($match[5])] = stripcslashes($match[6]);
+					$key = $match[5];
+					$value = $match[6];
 				} elseif(isset($match[7]) and strlen($match[7])) {
-					$attributes[] = stripcslashes($match[7]);
+					$key = $match[7];
+					$value = $key;
 				} elseif(isset($match[8])) {
-					$attributes[] = stripcslashes($match[8]);
+					$key = $match[8];
+					$value = $key;
 				}
+				$attributes[$key] = $value;
 			}
 		} else {
-			$attributes = ltrim($string);
+			$key = $string;
+			$value = $key;
+			$attributes[$key] = $value;
+		}
+		$attributes = self::filterAttributes($attributes);
+
+		return $attributes;
+	}
+
+	public static function recoverAttributeString($string = '') {
+		$pattern = array(
+			'&#039;' => '\'',
+			'&quot;' => '\"',
+		);
+		$string = str_replace(array_keys($pattern),array_values($pattern),$string);
+		$string = preg_replace('/[\x{00a0}\x{200b}]+/u',' ',$string);
+
+		return $string;
+	}
+
+	public static function filterAttributes($given=array()) {
+		$attributes = array();
+
+		if(!empty($given)) {
+			foreach($given as $key => $value) {
+				$key = trim(stripslashes($key));
+				$value = trim(stripslashes($value));
+				$attributes[$key] = $value;
+			}
 		}
 
 		return $attributes;
 	}
-	 
 }
 KabinetShortcodes::construct();
 
