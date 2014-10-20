@@ -1,0 +1,8 @@
+base	shortcodes
+author	jinbonetwork
+email	jinbonetwork@gmail.com
+date	2014-10-20
+name	shortcodes syntax plugin
+desc	Process various shortcodes.
+url		http://lab.jinbo.net/dokuwiki/plugin:shortcodes
+
