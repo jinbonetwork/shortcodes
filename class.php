@@ -37,7 +37,7 @@ class KabinetShortcodes {
 	}
 
 	public static function execute($matches) {
-		$markup = '';
+		$markup = false;
 
 		// allow [[foo]] syntax for escaping a tag
 		if($matches[1]=='['&&$matches[6]==']') {
@@ -45,23 +45,17 @@ class KabinetShortcodes {
 		}
 
 		$shortcode = $matches[2];
-		self::$shortcodes[] = $shortcode;
 		$attributes = self::getAttributes($matches[3]);
+		$content = isset($matches[5])?$matches[5]:null; // content in enclosure
+
+		self::$shortcodes[] = $shortcode;
+
 		$class = self::$classPrefix.$shortcode;
-		$object = new $class($attributes);
+		$object = new $class($attributes,$content,$shortcode);
 		$markup = $object->output;
+		unset($object);
 
 		return $markup;
-
-		/* Legacy
-		if(isset($matches[5])) {
-			// enclosing tag - extra parameter
-			return $matches[1].call_user_func($callback,$attributes,$matches[5],$shortcode).$matches[6];
-		} else {
-			// self-closing tag
-			return $matches[1].call_user_func($callback,$attributes,null,$shortcode).$matches[6];
-		}
-		*/
 	}
 
 	public static function getShortcodePattern() {
