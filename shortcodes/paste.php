@@ -5,6 +5,7 @@ class KabinetShortcode_paste extends KabinetShortcode {
 	public $url;
 	public $page;
 	public $selector;
+	public $cache;
 	public $test;
 
 	protected $dataDir;
@@ -31,6 +32,7 @@ class KabinetShortcode_paste extends KabinetShortcode {
 			'url' => '',
 			'page' => '',
 			'selector' => '',
+			'cache' => false,
 			'test' => false,
 		);
 
@@ -118,7 +120,7 @@ class KabinetShortcode_paste extends KabinetShortcode {
 			return $content;
 		}
 
-		if(!file_exists($this->cacheFile)||filemtime($this->cacheFile)<filemtime(wikiFN($page))) {
+		if(!$this->cache||!file_exists($this->cacheFile)||filemtime($this->cacheFile)<filemtime(wikiFN($page))) {
 			$cache = p_wiki_xhtml($page);
 			$cache = $this->preprocessContent($cache);
 			$cahce = $this->postprocessContent($cache);
