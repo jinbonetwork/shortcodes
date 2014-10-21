@@ -149,6 +149,8 @@ class KabinetShortcode_paste extends KabinetShortcode {
 
 	function postprocessContent($content) {
 		$content = $this->selectElement($content);
+		$content = $this->correctReferences($content);
+
 		$content = '<html>'.PHP_EOL.$content.PHP_EOL.'</html>'.PHP_EOL;
 		return $content;
 	}
@@ -160,17 +162,41 @@ class KabinetShortcode_paste extends KabinetShortcode {
 		if($selector) {
 			$html = str_get_html($content);
 			$items = $html->find($selector);
-
 			if(!empty($items)) {
+				$content = '';
 				foreach($items as $item) {
-					$output .= $item->outertext;
+					$content .= $item->outertext;
 				}
 			}
-		} else {
-			$output = $content;
 		}
 
-		return $output;
+		return $content;
+	}
+
+	function correctReferences($content) {
+		switch($this->mode) {
+			case 'url':
+				if(strpos($this->url,'://')!==false) {
+					list($protocol,$url) = explode('://',$this->url);
+				}
+				list($domain,$directories) = explode('/',$url);
+				$domain = ($protocol?$protocol.'://':'').$domain;
+				break;
+			case 'page':
+				global $conf;
+				$domain = str_replace('/doku.php','',wl($conf['start'],'',true));
+				break;
+		}
+		$pattern = array();
+		$cases = array('href','src');
+		foreach($cases as $case) {
+			$pattern['/'.$case.' ?= ?\//'] = $case.'='.$domain.'/';
+			$pattern['/'.$case.' ?= ?\'\//'] = $case.'=\''.$domain.'/';
+			$pattern['/'.$case.' ?= ?\"\//'] = $case.'="'.$domain.'/';
+		}
+		$content = preg_replace(array_keys($pattern),array_values($pattern),$content);
+
+		return $content;
 	}
 
 }
