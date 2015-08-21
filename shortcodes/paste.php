@@ -5,7 +5,8 @@ class KabinetShortcode_paste extends KabinetShortcode {
 	public $url;
 	public $page;
 	public $selector;
-	public $cache;
+	public $purge;
+	public $refresh;
 	public $test;
 
 	protected $dataDir;
@@ -32,7 +33,8 @@ class KabinetShortcode_paste extends KabinetShortcode {
 			'url' => '',
 			'page' => '',
 			'selector' => '',
-			'cache' => false,
+			'purge' => false,
+			'refresh' => true,
 			'test' => false,
 		);
 
@@ -46,16 +48,16 @@ class KabinetShortcode_paste extends KabinetShortcode {
 			$this->mode = false;
 		}
 
-		$this->filterAttributes($attributes,$defaults);
-		foreach($this->attributes as $key => $value) {
-			$this->$key = $value;
-		}
-
+		$this->checkAttributes($attributes,$defaults,true);
 		$this->output = $this->execute();
 	}
 
 	function execute() {
 		$result = false;
+
+		if($this->purge) {
+			$this->remove($this->cacheDir);
+		}
 
 		switch($this->mode) {
 			case 'url':
@@ -75,10 +77,15 @@ class KabinetShortcode_paste extends KabinetShortcode {
 		
 		if($this->content) {
 			if($this->test) {
+				ob_start();
+				var_dump($this);
+				$report = ob_get_contents();
+				ob_end_clean();
+
 				$result = sprintf(
 					'<dl><dt>%s</dt><dd>%s</dd><dd>%s</dd></dl>',
-					htmlentities($this->item).'('.$this->mode.':'.$this->cacheFile.')',
-					$this->selector,
+					htmlentities($this->item),
+					$report,
 					htmlentities($this->content)
 				);
 			} else {
@@ -120,15 +127,36 @@ class KabinetShortcode_paste extends KabinetShortcode {
 			return $content;
 		}
 
-		if(!$this->cache||!file_exists($this->cacheFile)||filemtime($this->cacheFile)<filemtime(wikiFN($page))) {
-			$cache = p_wiki_xhtml($page);
-			$cache = $this->preprocessContent($cache);
-			$cahce = $this->postprocessContent($cache);
-			file_put_contents($this->cacheFile,$cache);
+		if($this->refresh) {
+			$this->remove($this->cacheFile);
 		}
+		if(!file_exists($this->cacheFile)) {
+			$this->saveCache($page);
+		}
+		if(filemtime($this->cacheFile)<filemtime(wikiFN($page))) {
+			$this->saveCache($page);
+		}
+
 		$content = file_get_contents($this->cacheFile);
 
 		return $content;
+	}
+
+	function saveCache($page) {
+		$result = false;
+
+		if(!file_exists($this->cacheDir)) {
+			$result = mkdir($this->cacheDir);
+		}
+
+		if(is_writable($this->cacheDir)) {
+			$cache = p_wiki_xhtml($page);
+			$cache = $this->preprocessContent($cache);
+			$cahce = $this->postprocessContent($cache);
+			$result = file_put_contents($this->cacheFile,$cache);
+		}
+
+		return $result;
 	}
 
 	function getCacheFileByPage($page) {

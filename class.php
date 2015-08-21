@@ -45,13 +45,18 @@ class KabinetShortcodes {
 		}
 
 		$shortcode = $matches[2];
+		$className = self::$classPrefix.$shortcode;
+
+		if(!class_exists($className)){
+			return $matches[0];
+		}
+
 		$attributes = self::getAttributes($matches[3]);
 		$content = isset($matches[5])?$matches[5]:null; // content in enclosure
 
 		self::$shortcodes[] = $shortcode;
 
-		$class = self::$classPrefix.$shortcode;
-		$object = new $class($attributes,$content,$shortcode);
+		$object = new $className($attributes,$content,$shortcode);
 		$markup = $object->output;
 		unset($object);
 
@@ -172,17 +177,45 @@ class KabinetShortcode {
 		$this->attributes = $attributes;
 	}
 
-	function filterAttributes($given=array(),$defaults=array()) {
+	function checkAttributes($given=array(),$defaults=array(),$doExtract=false) {
 		$attributes = array();
 
-		if(!empty($given)&&!empty($defaults)) {
-			$this->defaults = $defaults;
+		if(empty($defaults)) {
+			$attributes = $given;
+		} else {
 			$merged = array_merge($defaults,$given);
-			$filtered = array_intersect_key($given,$defaults);
+			$filtered = array_intersect_key($merged,$defaults);
 			$attributes = $filtered;
 		}
 
+		$this->defaults = $defaults;
 		$this->attributes = $attributes;
+
+		if($doExtract) {
+			foreach($this->attributes as $key => $value) {
+				$this->$key = $value;
+			}
+		}
 	}
+
+	function remove($file) {
+		$result = false;
+		
+		if(file_exists($file)) {
+			if(is_dir($file)) {
+				$children = array_diff(scandir($file),array('.','..'));
+				foreach($children as $child) {
+					$childfile = $file.'/'.$child;
+					$this->remove($childfile);
+				}
+				$result = rmdir($file);
+			} else { 
+				$result = unlink($file);
+			}
+		}
+
+		return $result;
+	}
+
 }
 ?>
